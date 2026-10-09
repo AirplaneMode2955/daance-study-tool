@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAANCE Certification Study Tool</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #f1f5f9; min-height: 100vh; }
+
+  /* NAV */
+  .nav { background: #1e293b; border-bottom: 2px solid #334155; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .nav h1 { font-size: 1.3rem; font-weight: 700; color: #38bdf8; letter-spacing: 0.5px; }
+  .nav-tabs { display: flex; gap: 8px; }
+  .nav-tab { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.2s; }
+  .nav-tab.active { background: #38bdf8; color: #0f172a; }
+  .nav-tab:not(.active) { background: #334155; color: #94a3b8; }
+  .nav-tab:not(.active):hover { background: #475569; color: #f1f5f9; }
+
+  /* SCREENS */
+  .screen { display: none; padding: 24px; max-width: 900px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* TOPIC FILTER */
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; border: 2px solid transparent; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s; }
+  .filter-btn[data-topic="all"] { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+  .filter-btn[data-topic="pharma"] { background: transparent; color: #a78bfa; border-color: #a78bfa; }
+  .filter-btn[data-topic="pharma"].active { background: #a78bfa; color: #0f172a; }
+  .filter-btn[data-topic="assessment"] { background: transparent; color: #34d399; border-color: #34d399; }
+  .filter-btn[data-topic="assessment"].active { background: #34d399; color: #0f172a; }
+  .filter-btn[data-topic="anesthesia"] { background: transparent; color: #fbbf24; border-color: #fbbf24; }
+  .filter-btn[data-topic="anesthesia"].active { background: #fbbf24; color: #0f172a; }
+  .filter-btn[data-topic="emergency"] { background: transparent; color: #f87171; border-color: #f87171; }
+  .filter-btn[data-topic="emergency"].active { background: #f87171; color: #0f172a; }
+  .filter-btn[data-topic="all"].active { background: #38bdf8; color: #0f172a; }
+
+  /* FLASHCARD */
+  .card-counter { text-align: center; color: #94a3b8; margin-bottom: 16px; font-size: 0.9rem; }
+  .flashcard-wrapper { perspective: 1200px; width: 100%; max-width: 680px; margin: 0 auto 24px; }
+  .flashcard { width: 100%; min-height: 280px; position: relative; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.4,0,0.2,1); cursor: pointer; }
+  .flashcard.flipped { transform: rotateY(180deg); }
+  .card-face { position: absolute; width: 100%; min-height: 280px; backface-visibility: hidden; border-radius: 16px; padding: 36px 32px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .card-front { background: #1e293b; border: 2px solid #334155; }
+  .card-back { background: #1e3a5f; border: 2px solid #38bdf8; transform: rotateY(180deg); }
+  .card-topic-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 12px; margin-bottom: 16px; }
+  .badge-pharma { background: #3b1f6e; color: #a78bfa; }
+  .badge-assessment { background: #064e3b; color: #34d399; }
+  .badge-anesthesia { background: #451a03; color: #fbbf24; }
+  .badge-emergency { background: #450a0a; color: #f87171; }
+  .card-front .card-label { font-size: 0.8rem; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .card-question { font-size: 1.25rem; font-weight: 600; line-height: 1.5; color: #f1f5f9; }
+  .card-answer { font-size: 1.1rem; line-height: 1.6; color: #e2e8f0; }
+  .card-hint { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+  .card-controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.15s; }
+  .btn-primary { background: #38bdf8; color: #0f172a; }
+  .btn-primary:hover { background: #7dd3fc; }
+  .btn-secondary { background: #334155; color: #f1f5f9; }
+  .btn-secondary:hover { background: #475569; }
+  .btn-success { background: #059669; color: #fff; }
+  .btn-success:hover { background: #10b981; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-danger:hover { background: #ef4444; }
+  .flip-hint { text-align: center; font-size: 0.8rem; color: #475569; margin-top: 12px; }
+  .progress-bar-wrap { background: #1e293b; border-radius: 8px; height: 6px; margin-bottom: 20px; }
+  .progress-bar { background: #38bdf8; height: 6px; border-radius: 8px; transition: width 0.3s; }
+
+  /* QUIZ */
+  .quiz-start { text-align: center; padding: 40px 20px; }
+  .quiz-start h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 12px; color: #38bdf8; }
+  .quiz-start p { color: #94a3b8; margin-bottom: 28px; line-height: 1.6; }
+  .quiz-question-block { background: #1e293b; border-radius: 16px; padding: 28px; margin-bottom: 20px; border: 2px solid #334155; }
+  .quiz-q-num { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .quiz-q-text { font-size: 1.1rem; font-weight: 600; line-height: 1.5; margin-bottom: 20px; color: #f1f5f9; }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-option { padding: 14px 18px; border-radius: 10px; border: 2px solid #334155; background: #0f172a; cursor: pointer; text-align: left; font-size: 0.95rem; color: #cbd5e1; transition: all 0.15s; font-family: inherit; }
+  .quiz-option:hover:not(:disabled) { border-color: #38bdf8; color: #f1f5f9; background: #1e293b; }
+  .quiz-option.correct { border-color: #10b981; background: #064e3b; color: #6ee7b7; }
+  .quiz-option.wrong { border-color: #ef4444; background: #450a0a; color: #fca5a5; }
+  .quiz-option:disabled { cursor: default; }
+  .quiz-explanation { margin-top: 14px; padding: 14px 16px; background: #172033; border-left: 3px solid #38bdf8; border-radius: 6px; font-size: 0.9rem; color: #94a3b8; line-height: 1.5; display: none; }
+  .quiz-explanation.show { display: block; }
+  .quiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+  .quiz-score-badge { font-size: 0.9rem; color: #94a3b8; }
+  .quiz-results { background: #1e293b; border-radius: 16px; padding: 36px; text-align: center; border: 2px solid #334155; }
+  .quiz-results h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+  .score-circle { width: 120px; height: 120px; border-radius: 50%; margin: 20px auto; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; border: 6px solid; }
+  .score-a { border-color: #10b981; color: #10b981; }
+  .score-b { border-color: #38bdf8; color: #38bdf8; }
+  .score-c { border-color: #fbbf24; color: #fbbf24; }
+  .score-d { border-color: #ef4444; color: #ef4444; }
+  .results-breakdown { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 24px 0; }
+  .result-card { background: #0f172a; border-radius: 10px; padding: 14px; }
+  .result-card .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+  .result-card .value { font-size: 1.3rem; font-weight: 700; margin-top: 4px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .card-question { font-size: 1rem; }
+    .results-breakdown { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <h1>🦷 DAANCE Cert Prep</h1>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchScreen('flashcards')">Flashcards</button>
+    <button class="nav-tab" onclick="switchScreen('quiz')">Practice Quiz</button>
+  </div>
+</div>
+
+<!-- FLASHCARDS SCREEN -->
+<div id="screen-flashcards" class="screen active">
+  <div class="filter-bar">
+    <button class="filter-btn active" data-topic="all" onclick="setFilter('all')">All Topics</button>
+    <button class="filter-btn" data-topic="pharma" onclick="setFilter('pharma')">💊 Pharmacology</button>
+    <button class="filter-btn" data-topic="assessment" onclick="setFilter('assessment')">📋 Patient Assessment</button>
+    <button class="filter-btn" data-topic="anesthesia" onclick="setFilter('anesthesia')">💉 Anesthesia</button>
+    <button class="filter-btn" data-topic="emergency" onclick="setFilter('emergency')">🚨 Emergencies</button>
+  </div>
+
+  <div class="progress-bar-wrap"><div class="progress-bar" id="fc-progress"></div></div>
+  <div class="card-counter" id="fc-counter">Card 1 of 0</div>
+
+  <div class="flashcard-wrapper">
+    <div class="flashcard" id="flashcard" onclick="flipCard()">
+      <div class="card-face card-front">
+        <span class="card-topic-badge" id="fc-badge"></span>
+        <div class="card-label">Question</div>
+        <div class="card-question" id="fc-question">Loading...</div>
+      </div>
+      <div class="card-face card-back">
+        <span class="card-topic-badge" id="fc-badge-back"></span>
+        <div class="card-answer" id="fc-answer"></div>
+      </div>
+    </div>
+  </div>
+  <p class="flip-hint">Click card to flip • Use buttons to navigate</p>
+
+  <div class="card-controls" style="margin-top:16px;">
+    <button class="btn btn-secondary" onclick="prevCard()">← Prev</button>
+    <button class="btn btn-danger" onclick="markCard('hard')">Hard</button>
+    <button class="btn btn-success" onclick="markCard('easy')">Got It ✓</button>
+    <button class="btn btn-secondary" onclick="nextCard()">Next →</button>
+  </div>
+  <div style="text-align:center; margin-top:16px;">
+    <button class="btn btn-primary" onclick="shuffleCards()">🔀 Shuffle</button>
+    <button class="btn btn-secondary" onclick="resetCards()" style="margin-left:8px;">↺ Reset</button>
+  </div>
+</div>
+
+<!-- QUIZ SCREEN -->
+<div id="screen-quiz" class="screen">
+  <div id="quiz-start-screen" class="quiz-start">
+    <h2>Practice Quiz</h2>
+    <p>Test your DAANCE knowledge with multiple-choice questions covering all 4 exam domains. Each quiz pulls 20 random questions. Read carefully — some options are close!</p>
+    <div class="filter-bar" style="justify-content:center; margin-bottom: 24px;">
+      <button class="filter-btn active" data-topic="all" id="qf-all" onclick="setQuizFilter('all')">All Topics</button>
+      <button class="filter-btn" data-topic="pharma" id="qf-pharma" onclick="setQuizFilter('pharma')">💊 Pharmacology</button>
+      <button class="filter-btn" data-topic="assessment" id="qf-assessment" onclick="setQuizFilter('assessment')">📋 Assessment</button>
+      <button class="filter-btn" data-topic="anesthesia" id="qf-anesthesia" onclick="setQuizFilter('anesthesia')">💉 Anesthesia</button>
+      <button class="filter-btn" data-topic="emergency" id="qf-emergency" onclick="setQuizFilter('emergency')">🚨 Emergencies</button>
+    </div>
+    <button class="btn btn-primary" style="font-size:1rem; padding:14px 36px;" onclick="startQuiz()">Start Quiz →</button>
+  </div>
+  <div id="quiz-active-screen" style="display:none;">
+    <div class="progress-bar-wrap"><div class="progress-bar" id="quiz-progress"></div></div>
+    <div id="quiz-content"></div>
+    <div class="quiz-nav">
+      <span class="quiz-score-badge" id="quiz-score-badge">Score: 0/0</span>
+      <button class="btn btn-primary" id="quiz-next-btn" onclick="nextQuestion()" style="display:none;">Next →</button>
+    </div>
+  </div>
+  <div id="quiz-results-screen" style="display:none;"></div>
+</div>
+
+<script>
+// ===================== DATA =====================
+
+const FLASHCARDS = [
+  // PHARMACOLOGY
+  { topic:'pharma', q:'What is the maximum recommended dose of lidocaine with epinephrine for a healthy adult (70kg)?', a:'7 mg/kg — up to 500 mg total. Lidocaine without epi is 4.4 mg/kg (max 300 mg).', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What is the reversal agent for benzodiazepine overdose?', a:'Flumazenil (Romazicon). Give 0.2 mg IV over 15 sec; may repeat up to 1 mg total. Monitor for re-sedation.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What is the reversal agent for opioid overdose?', a:'Naloxone (Narcan). Adult dose: 0.4–2 mg IV/IM/intranasal. Repeat every 2–3 min as needed.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What class of drug is midazolam (Versed)?', a:'Benzodiazepine — produces anxiolysis, amnesia, and sedation. Commonly used for conscious sedation.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What are the 4 effects of benzodiazepines?', a:'1) Anxiolysis 2) Amnesia (anterograde) 3) Sedation/Hypnosis 4) Anticonvulsant. They do NOT provide analgesia.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What is the onset and duration of IV midazolam?', a:'Onset: 1–5 minutes. Duration: 30–60 minutes. Titrate slowly — elderly patients require lower doses.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'Name the 3 opioids most commonly used in dental sedation.', a:'1) Fentanyl (Sublimaze) 2) Meperidine (Demerol) 3) Morphine. Fentanyl is most common due to rapid onset and short duration.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What is the clinical effect of nitrous oxide on the CNS?', a:'CNS depressant — produces euphoria, analgesia, and anxiolysis. Does NOT cause unconsciousness at dental doses. Minimum alveolar concentration (MAC) ~104%.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What does epinephrine do when combined with a local anesthetic?', a:'Vasoconstriction — prolongs anesthetic duration, reduces systemic absorption, and decreases bleeding at the site.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What is the maximum concentration of nitrous oxide recommended for minimal sedation in dentistry?', a:'50% nitrous oxide. Above 50%, sedation depth can become unpredictable.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What is the mechanism of action of local anesthetics?', a:'Block voltage-gated sodium (Na+) channels, preventing depolarization and nerve impulse transmission.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What is methemoglobinemia and which local anesthetic can cause it?', a:'Condition where hemoglobin cannot carry oxygen. Prilocaine (and benzocaine in topical form) can cause it — treat with methylene blue 1-2 mg/kg IV.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What drug class is dexmedetomidine (Precedex)?', a:'Alpha-2 adrenergic agonist. Produces sedation, anxiolysis, and analgesia without respiratory depression. Used in monitored sedation.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What is the role of atropine in dental anesthesia?', a:'Anticholinergic — treats bradycardia, reduces secretions. Dose: 0.5–1 mg IV/IM. Also used for vasovagal reactions.', badge:'💊 Pharmacology' },
+  { topic:'pharma', q:'What is the difference between ester and amide local anesthetics?', a:'Esters (benzocaine, procaine) are metabolized in plasma by pseudocholinesterase. Amides (lidocaine, bupivacaine, mepivacaine) are metabolized in the liver. Esters have higher allergy risk.', badge:'💊 Pharmacology' },
+
+  // PATIENT ASSESSMENT
+  { topic:'assessment', q:'What does ASA I classification mean?', a:'Normal healthy patient — no systemic disease, no functional limitations. Minimal anesthetic risk.', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What does ASA II classification mean?', a:'Mild systemic disease with no functional limitations — e.g., controlled hypertension, mild asthma, smoking, well-controlled diabetes.', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What does ASA III classification mean?', a:'Severe systemic disease with functional limitations — e.g., poorly controlled diabetes, COPD, morbid obesity (BMI ≥40), active hepatitis, alcohol dependence.', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What does ASA IV classification mean?', a:'Severe systemic disease that is a constant threat to life — e.g., recent MI (<3 months), CVA, sepsis, poorly controlled CHF.', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What are normal adult vital signs?', a:'BP: 120/80 mmHg | HR: 60–100 bpm | RR: 12–20 breaths/min | SpO2: ≥95% | Temp: 98.6°F (37°C)', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What is a contraindication to using epinephrine in local anesthetic?', a:'Uncontrolled hyperthyroidism, pheochromocytoma, severe cardiovascular disease, or patients on non-selective beta-blockers (risk of hypertensive crisis).', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What is the significance of a patient\'s NPO (nil per os) status?', a:'Nothing by mouth before sedation reduces aspiration risk. General rule: 6 hrs for solids/fatty foods, 4 hrs for breast milk, 2 hrs for clear liquids.', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What 3 things does the Mallampati score assess?', a:'Predicts difficult airway — assesses visibility of: 1) uvula 2) tonsillar pillars 3) soft palate. Class I = full visibility; Class IV = only hard palate visible.', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What is the Aldrete score used for?', a:'Post-anesthesia recovery scoring — assesses activity, respiration, circulation, consciousness, and oxygen saturation. Score ≥9 needed for discharge.', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What should be documented before IV sedation regarding a patient\'s medications?', a:'All current medications, dosages, and last dose time — especially anticoagulants, beta-blockers, diabetes meds, and CNS depressants that can interact with sedation drugs.', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What is the Modified Observer\'s Assessment of Alertness/Sedation (MOAAS) scale?', a:'Measures sedation depth from 5 (alert, responds normally) to 0 (no response to noxious stimuli). Target for moderate sedation is level 3–4.', badge:'📋 Assessment' },
+  { topic:'assessment', q:'What are risk factors for post-operative nausea and vomiting (PONV)?', a:'Female sex, non-smoker, history of PONV/motion sickness, use of opioids, and longer procedure time.', badge:'📋 Assessment' },
+
+  // ANESTHESIA TECHNIQUES
+  { topic:'anesthesia', q:'What are the 4 levels of sedation as defined by the ASA?', a:'1) Minimal (Anxiolysis) 2) Moderate (Conscious Sedation) 3) Deep Sedation 4) General Anesthesia. Each level has increasing CNS/airway depression.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What defines MODERATE (conscious) sedation?', a:'Patient responds purposefully to verbal or light touch commands. Airway maintained independently. Cardiovascular function usually maintained.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What defines DEEP sedation?', a:'Patient cannot be easily aroused — responds only to repeated/painful stimulation. May need airway assistance. Risk of cardiovascular compromise.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What are the 4 stages of anesthesia (Guedel\'s classification)?', a:'Stage 1: Analgesia | Stage 2: Excitement/Delirium (dangerous — laryngospasm risk) | Stage 3: Surgical Anesthesia | Stage 4: Medullary Depression (lethal)', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What monitoring is required during IV moderate sedation per DAANCE standards?', a:'Continuous: SpO2, HR, ECG. Intermittent: BP every 5 min. Also capnography (EtCO2) is recommended. Record baseline and every 5 minutes.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What is the purpose of capnography (EtCO2) monitoring during sedation?', a:'Measures exhaled CO2 to confirm ventilation. Normal EtCO2: 35–45 mmHg. Early indicator of airway obstruction, apnea, or respiratory depression — detects before SpO2 drops.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What is titration in IV sedation and why is it important?', a:'Administering a drug in small incremental doses, waiting for peak effect before redosing. Prevents overdose, allows individualized dosing, reduces adverse events.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What is the drug combination most commonly used for dental IV sedation?', a:'Benzodiazepine (midazolam) + Opioid (fentanyl). Synergistic effect — both drugs potentiate each other\'s CNS depression. Dose each conservatively.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What is the recovery time requirement after IV moderate sedation before a patient can be discharged?', a:'Minimum 30 minutes in recovery. Patient must meet discharge criteria: alert and oriented, stable vitals, walk unassisted, no N/V, accompanied by responsible adult.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What is the jaw thrust maneuver used for?', a:'Opens the airway in an unconscious patient without moving the cervical spine — preferred over head-tilt/chin-lift if spinal injury is suspected. Displaces mandible anteriorly.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What is the correct positioning for a sedated dental patient with suspected airway compromise?', a:'Place supine or in recovery position (lateral decubent). Ensure airway is open. Administer 100% O2. Be prepared to use bag-valve-mask ventilation.', badge:'💉 Anesthesia' },
+  { topic:'anesthesia', q:'What IV gauge needle is typically used for IV sedation in dentistry?', a:'18–22 gauge. 18-20G preferred for medications and emergency drugs. Antecubital fossa or dorsum of hand are common sites.', badge:'💉 Anesthesia' },
+
+  // EMERGENCIES
+  { topic:'emergency', q:'What are the signs and symptoms of anaphylaxis?', a:'Urticaria/hives, angioedema, bronchospasm (wheezing), hypotension, tachycardia, laryngeal edema. Can be life-threatening within minutes.', badge:'🚨 Emergency' },
+  { topic:'emergency', q:'What is the first-line treatment for anaphylaxis?', a:'Epinephrine 1:1000 — 0.3–0.5 mg IM (anterolateral thigh). Repeat every 5–15 min as needed. Also: 100% O2, lay patient flat (legs elevated), IV fluids, call 911.', badge:'🚨 Emergency' },
+  { topic:'emergency', q:'What are the signs of local anesthetic systemic toxicity (LAST)?', a:'CNS: ringing in ears, metallic taste, perioral numbness, seizures. Cardiovascular: arrhythmia, bradycardia, cardiac arrest. CNS symptoms appear first.', badge:'🚨 Emergency' },
+  { topic:'emergency', q:'What is the treatment for local anesthetic systemic toxicity (LAST)?', a:'Stop injection. Airway/O2. Call 911. Seizures: benzodiazepines. Cardiac arrest: Lipid Emulsion Therapy (Intralipid 20%) — 1.5 mL/kg IV bolus. CPR per ACLS.', badge:'🚨 Emergency' },
+  { topic:'emergency', q:'What causes laryngospasm and how is it treated?', a:'Partial/complete closure of vocal cords — caused by secretions, irritants, or light anesthesia. Tx: Positive pressure O2, jaw thrust. If complete: succinylcholine 0.1–1 mg/kg IV. Call 911.', badge:'🚨 Emergency' },
+  { topic:'emergency', q:'What are the signs and treatment of a vasovagal syncope episode?', a:'Prodrome: diaphoresis, nausea, pallor. Syncope: LOC, bradycardia, hypotension. Tx: Supine position, legs elevated (Trendelenburg), cool cloth, O2, ammonia inhalant. Usually self-resolving.', badge:'🚨 Emergency' },
+  { topic:'emergency', q:'What is the initial management of a patient with respiratory depression during sedation?', a:'Stimulate patient verbally/physically. Stop drug administration. Open airway (jaw thrust/head-tilt). 100% O2. If inadequate breathing: BVM ventilation. Reversal agents if applicable.', badge:'🚨 Emergency' },
+  { topic:'emergency', q:'What are signs of hypoglycemia in a diabetic patient during dental treatment?', a:'Shakiness, diaphoresis, pallor, confusion, tachycardia, LOC. Treat conscious patient: 15-20g fast-acting glucose (juice, glucose tablets). Unconscious: glucagon 1mg IM, call 911.', badge:'🚨 Emergency' },
+  { topic:'emergency', q:'What is the universal chain of survival for cardiac arrest?', a:'1) Early recognition/call 911 2) Early CPR 3) Early defibrillation 4) Advanced care (ACLS) 5) Post-cardiac arrest care. CPR: 30 compressions : 2 breaths, 100-120/min.', badge:'🚨 Emergency' },
+  { topic:'emergency', q:'What is malignant hyperthermia and what triggers it?', a:'Life-threatening hypermetabolic reaction triggered by volatile anesthetics (halothane, sevoflurane) or succinylcholine in genetically susceptible patients. Signs: hyperthermia, muscle rigidity, tachycardia. Tx: Dantrolene 2.5 mg/kg IV.', badge:'🚨 Emergency' },
+];
+
+// ===================== QUIZ DATA =====================
+
+const QUIZ_QUESTIONS = [
+  { topic:'pharma', q:'Which drug is the reversal agent for benzodiazepines?', options:['Naloxone','Flumazenil','Atropine','Dantrolene'], correct:1, explanation:'Flumazenil (Romazicon) competitively antagonizes benzodiazepine receptors. Naloxone reverses opioids.' },
+  { topic:'pharma', q:'The maximum dose of lidocaine WITH epinephrine for a healthy adult is:', options:['3 mg/kg','4.4 mg/kg','7 mg/kg','10 mg/kg'], correct:2, explanation:'With vasoconstriction from epinephrine, systemic absorption is slowed, allowing a higher max dose of 7 mg/kg (up to 500mg).' },
+  { topic:'pharma', q:'Which local anesthetic can cause methemoglobinemia?', options:['Lidocaine','Bupivacaine','Prilocaine','Mepivacaine'], correct:2, explanation:'Prilocaine (and benzocaine topically) metabolize to o-toluidine, which oxidizes hemoglobin to methemoglobin. Treat with methylene blue.' },
+  { topic:'pharma', q:'Midazolam belongs to which drug class?', options:['Opioid','Barbiturate','Benzodiazepine','Alpha-2 agonist'], correct:2, explanation:'Midazolam (Versed) is a benzodiazepine producing anxiolysis, anterograde amnesia, and sedation. It does NOT provide analgesia.' },
+  { topic:'pharma', q:'Which of the following is NOT an effect of benzodiazepines?', options:['Anxiolysis','Analgesia','Amnesia','Anticonvulsant'], correct:1, explanation:'Benzodiazepines produce anxiolysis, amnesia, sedation, and anticonvulsant effects — but they do NOT provide analgesia.' },
+  { topic:'pharma', q:'Epinephrine is added to local anesthetics primarily to:', options:['Increase anesthetic potency','Reduce systemic toxicity via vasoconstriction','Prevent allergic reactions','Reverse CNS depression'], correct:1, explanation:'Epinephrine causes local vasoconstriction, slowing absorption into the bloodstream, which prolongs duration and reduces systemic toxicity.' },
+  { topic:'pharma', q:'What is the mechanism of action of local anesthetics?', options:['Block calcium channels','Block potassium channels','Block sodium channels','Block opioid receptors'], correct:2, explanation:'Local anesthetics block voltage-gated sodium (Na+) channels, preventing membrane depolarization and nerve impulse conduction.' },
+  { topic:'pharma', q:'Naloxone (Narcan) is used to reverse which type of drug?', options:['Benzodiazepines','Opioids','Local anesthetics','Anticholinergics'], correct:1, explanation:'Naloxone is a competitive opioid receptor antagonist. Typical dose is 0.4–2 mg IV/IM, repeated every 2–3 min as needed.' },
+  { topic:'pharma', q:'Which local anesthetic is classified as an ESTER?', options:['Lidocaine','Mepivacaine','Benzocaine','Bupivacaine'], correct:2, explanation:'Benzocaine is an ester anesthetic, metabolized in plasma. Lidocaine, mepivacaine, and bupivacaine are amides, metabolized in the liver.' },
+  { topic:'pharma', q:'The maximum recommended nitrous oxide concentration for minimal sedation in dentistry is:', options:['25%','35%','50%','70%'], correct:2, explanation:'Above 50% N2O, sedation depth becomes unpredictable. Always use with at least 30% oxygen to prevent hypoxia.' },
+  { topic:'assessment', q:'An ASA II patient is BEST described as:', options:['Normal healthy patient','Mild systemic disease, no functional limitation','Severe systemic disease','Disease that is a constant threat to life'], correct:1, explanation:'ASA II includes patients with mild controlled conditions like hypertension, well-controlled diabetes, mild asthma, or BMI 30-40.' },
+  { topic:'assessment', q:'Normal adult resting SpO2 should be at least:', options:['88%','90%','95%','99%'], correct:2, explanation:'SpO2 ≥95% is normal. Below 90% is clinical hypoxemia requiring intervention. Supplemental O2 is indicated when SpO2 drops below 94% during sedation.' },
+  { topic:'assessment', q:'A Mallampati Class IV airway indicates:', options:['Full visibility of uvula and tonsillar pillars','Partial visibility of uvula','Only soft palate visible','Only hard palate visible — difficult intubation expected'], correct:3, explanation:'Class IV = only hard palate visible. This suggests a potentially difficult airway and warrants extra precaution during sedation.' },
+  { topic:'assessment', q:'The Aldrete score requires a minimum of ___ for discharge from recovery:', options:['6','7','8','9'], correct:3, explanation:'Aldrete score ≥9 (out of 10) is required for discharge. It assesses activity, respiration, circulation, consciousness, and SpO2.' },
+  { topic:'assessment', q:'Which patient has a contraindication to epinephrine-containing local anesthetics?', options:['Controlled Type 2 Diabetes','Pheochromocytoma','Well-controlled asthma','ASA I healthy adult'], correct:1, explanation:'Pheochromocytoma (adrenal tumor secreting catecholamines) + exogenous epinephrine can cause dangerous hypertensive crisis.' },
+  { topic:'assessment', q:'NPO guidelines for clear liquids before general anesthesia/deep sedation are:', options:['8 hours','6 hours','4 hours','2 hours'], correct:3, explanation:'ASA NPO guidelines: Clear liquids — 2 hrs; Breast milk — 4 hrs; Light meal/formula — 6 hrs; Fatty foods/solids — 8 hrs.' },
+  { topic:'anesthesia', q:'During MODERATE sedation, the patient should:', options:['Require assistance maintaining airway','Respond only to painful stimulation','Respond purposefully to verbal commands','Be completely unresponsive'], correct:2, explanation:'Moderate (conscious) sedation: patient responds purposefully to verbal or light tactile stimulation. Airway reflexes and CV function are maintained.' },
+  { topic:'anesthesia', q:'Capnography (EtCO2) during sedation primarily monitors:', options:['Blood pressure','Heart rhythm','Ventilation adequacy','Drug plasma levels'], correct:2, explanation:'EtCO2 measures exhaled CO2, confirming ventilation. Normal: 35–45 mmHg. It detects apnea or obstruction BEFORE SpO2 drops — critical early warning.' },
+  { topic:'anesthesia', q:'Stage 2 of Guedel\'s anesthesia stages is dangerous primarily because of:', options:['Respiratory arrest','Laryngospasm risk and excitement/delirium','Complete CNS depression','Loss of pain sensation'], correct:1, explanation:'Stage 2 (Excitement/Delirium) involves irregular breathing, breath-holding, laryngospasm risk. Goal is to pass through it quickly.' },
+  { topic:'anesthesia', q:'The correct needle gauge for IV sedation access is typically:', options:['14-16 gauge','18-22 gauge','24-26 gauge','28-30 gauge'], correct:1, explanation:'18–22 gauge is standard for IV access in sedation. Larger bore (18G) is preferred if emergency drugs may be needed rapidly.' },
+  { topic:'anesthesia', q:'Which drug combination is most commonly used for dental IV moderate sedation?', options:['Ketamine + propofol','Midazolam + fentanyl','Diazepam + morphine','Dexmedetomidine + nitrous'], correct:1, explanation:'Midazolam (benzodiazepine) + fentanyl (opioid) is the standard combination — synergistic CNS depression, both reversible with antidotes.' },
+  { topic:'anesthesia', q:'Minimum monitoring during IV moderate sedation includes continuous:', options:['SpO2 and ECG only','SpO2, HR, ECG, and BP every 5 min','Blood glucose only','Urine output and temperature'], correct:1, explanation:'DAANCE standard: continuous SpO2, HR, ECG monitoring. BP every 5 minutes minimum. Capnography strongly recommended.' },
+  { topic:'emergency', q:'First-line treatment for anaphylaxis is:', options:['Diphenhydramine (Benadryl) IV','Epinephrine 1:1000 IM (0.3–0.5 mg)','Albuterol inhaler','Corticosteroids'], correct:1, explanation:'Epinephrine 1:1000 IM in the anterolateral thigh is the ONLY first-line treatment for anaphylaxis. Antihistamines are adjuncts, not primary treatment.' },
+  { topic:'emergency', q:'The FIRST symptom of local anesthetic systemic toxicity (LAST) is typically:', options:['Cardiac arrest','Seizures','CNS excitation — ringing in ears, metallic taste, perioral numbness','Loss of consciousness'], correct:2, explanation:'LAST follows a CNS-first pattern: initial excitation (tinnitus, metallic taste, perioral numbness) → seizures → CNS/cardiovascular depression.' },
+  { topic:'emergency', q:'Treatment for local anesthetic systemic toxicity with cardiac arrest includes:', options:['Flumazenil IV push','Lipid Emulsion Therapy (Intralipid 20%)','Atropine only','Dextrose 50%'], correct:1, explanation:'Intralipid 20% (1.5 mL/kg IV bolus) is the specific antidote for LAST. It acts as a "lipid sink" binding the local anesthetic drug.' },
+  { topic:'emergency', q:'A patient develops laryngospasm. The FIRST intervention should be:', options:['Succinylcholine 1 mg/kg IV immediately','Positive pressure oxygen with jaw thrust','Cricothyrotomy','Call 911 and wait'], correct:1, explanation:'Positive pressure O2 + jaw thrust first — many partial laryngospasms resolve. Succinylcholine is reserved for complete, unresolved laryngospasm.' },
+  { topic:'emergency', q:'Malignant hyperthermia is triggered by:', options:['Benzodiazepines','Opioids','Volatile anesthetics or succinylcholine','Local anesthetics'], correct:2, explanation:'MH is triggered by succinylcholine or volatile anesthetic agents (halothane, sevoflurane) in genetically susceptible patients. Treat with dantrolene.' },
+  { topic:'emergency', q:'The correct treatment for vasovagal syncope is:', options:['Epinephrine 1:1000 IM','Supine position with legs elevated, O2, cool cloth','Atropine 2 mg IV immediately','Chest compressions'], correct:1, explanation:'Vasovagal syncope: Trendelenburg position (supine, legs up) restores cerebral blood flow. Add O2, cool cloth, ammonia inhalant. Usually self-resolving.' },
+  { topic:'emergency', q:'A conscious diabetic patient shows signs of hypoglycemia. You should:', options:['Administer glucagon 1mg IM','Give 15–20g fast-acting oral glucose (juice, glucose tablets)','Start IV dextrose immediately','Call 911 first, then treat'], correct:1, explanation:'Conscious patient with hypoglycemia: oral fast-acting carbs first (15-20g glucose). Reassess in 15 min. Glucagon/IV dextrose for unconscious patients.' },
+  { topic:'emergency', q:'The compression-to-ventilation ratio for adult CPR (single rescuer) is:', options:['15:2','30:2','50:2','Compressions only, no ventilations'], correct:1, explanation:'Adult CPR (1 or 2 rescuer): 30 compressions to 2 breaths. Rate: 100–120 compressions/min, depth: 2–2.4 inches. Minimize interruptions.' },
+];
+
+// ===================== STATE =====================
+let fcFilter = 'all';
+let fcIndex = 0;
+let fcDeck = [];
+let fcFlipped = false;
+let quizFilter = 'all';
+let quizDeck = [];
+let quizIndex = 0;
+let quizScore = 0;
+let quizAnswered = false;
+
+// ===================== FLASHCARD LOGIC =====================
+function getFilteredCards() {
+  return fcFilter === 'all' ? [...FLASHCARDS] : FLASHCARDS.filter(c => c.topic === fcFilter);
+}
+function setFilter(f) {
+  fcFilter = f;
+  document.querySelectorAll('#screen-flashcards .filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.topic === f);
+  });
+  fcDeck = getFilteredCards();
+  fcIndex = 0;
+  showCard();
+}
+function showCard() {
+  if (!fcDeck.length) return;
+  const card = fcDeck[fcIndex];
+  const fc = document.getElementById('flashcard');
+  fc.classList.remove('flipped');
+  fcFlipped = false;
+  document.getElementById('fc-question').textContent = card.q;
+  document.getElementById('fc-answer').textContent = card.a;
+  const badgeClass = 'badge-' + card.topic;
+  ['fc-badge','fc-badge-back'].forEach(id => {
+    const el = document.getElementById(id);
+    el.textContent = card.badge;
+    el.className = 'card-topic-badge ' + badgeClass;
+  });
+  const total = fcDeck.length;
+  document.getElementById('fc-counter').textContent = `Card ${fcIndex + 1} of ${total}`;
+  document.getElementById('fc-progress').style.width = ((fcIndex + 1) / total * 100) + '%';
+}
+function flipCard() {
+  fcFlipped = !fcFlipped;
+  document.getElementById('flashcard').classList.toggle('flipped', fcFlipped);
+}
+function nextCard() {
+  if (!fcDeck.length) return;
+  fcIndex = (fcIndex + 1) % fcDeck.length;
+  showCard();
+}
+function prevCard() {
+  if (!fcDeck.length) return;
+  fcIndex = (fcIndex - 1 + fcDeck.length) % fcDeck.length;
+  showCard();
+}
+function markCard(type) {
+  nextCard();
+}
+function shuffleCards() {
+  fcDeck = fcDeck.sort(() => Math.random() - 0.5);
+  fcIndex = 0;
+  showCard();
+}
+function resetCards() {
+  fcDeck = getFilteredCards();
+  fcIndex = 0;
+  showCard();
+}
+
+// ===================== QUIZ LOGIC =====================
+function setQuizFilter(f) {
+  quizFilter = f;
+  document.querySelectorAll('#screen-quiz .filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.topic === f);
+  });
+}
+function startQuiz() {
+  const pool = quizFilter === 'all' ? [...QUIZ_QUESTIONS] : QUIZ_QUESTIONS.filter(q => q.topic === quizFilter);
+  quizDeck = pool.sort(() => Math.random() - 0.5).slice(0, Math.min(20, pool.length));
+  quizIndex = 0;
+  quizScore = 0;
+  quizAnswered = false;
+  document.getElementById('quiz-start-screen').style.display = 'none';
+  document.getElementById('quiz-active-screen').style.display = 'block';
+  document.getElementById('quiz-results-screen').style.display = 'none';
+  renderQuestion();
+}
+function renderQuestion() {
+  if (quizIndex >= quizDeck.length) { showResults(); return; }
+  const q = quizDeck[quizIndex];
+  quizAnswered = false;
+  document.getElementById('quiz-next-btn').style.display = 'none';
+  document.getElementById('quiz-progress').style.width = ((quizIndex) / quizDeck.length * 100) + '%';
+  document.getElementById('quiz-score-badge').textContent = `Score: ${quizScore}/${quizIndex}`;
+
+  const topicLabels = {pharma:'💊 Pharmacology', assessment:'📋 Patient Assessment', anesthesia:'💉 Anesthesia', emergency:'🚨 Emergency'};
+  let html = `<div class="quiz-question-block">
+    <div class="quiz-q-num">${topicLabels[q.topic]} — Question ${quizIndex + 1} of ${quizDeck.length}</div>
+    <div class="quiz-q-text">${q.q}</div>
+    <div class="quiz-options" id="quiz-options">
+      ${q.options.map((opt, i) => `<button class="quiz-option" onclick="answerQuestion(${i})">${String.fromCharCode(65+i)}. ${opt}</button>`).join('')}
+    </div>
+    <div class="quiz-explanation" id="quiz-explanation">${q.explanation}</div>
+  </div>`;
+  document.getElementById('quiz-content').innerHTML = html;
+}
+function answerQuestion(selected) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const q = quizDeck[quizIndex];
+  const buttons = document.querySelectorAll('.quiz-option');
+  buttons.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === selected) btn.classList.add('wrong');
+  });
+  if (selected === q.correct) quizScore++;
+  document.getElementById('quiz-explanation').classList.add('show');
+  document.getElementById('quiz-next-btn').style.display = 'inline-block';
+  document.getElementById('quiz-score-badge').textContent = `Score: ${quizScore}/${quizIndex + 1}`;
+}
+function nextQuestion() {
+  quizIndex++;
+  renderQuestion();
+}
+function showResults() {
+  document.getElementById('quiz-active-screen').style.display = 'none';
+  document.getElementById('quiz-results-screen').style.display = 'block';
+  const pct = Math.round(quizScore / quizDeck.length * 100);
+  let grade, scoreClass, msg;
+  if (pct >= 90) { grade='A'; scoreClass='score-a'; msg='Excellent! You\'re well-prepared.'; }
+  else if (pct >= 80) { grade='B'; scoreClass='score-b'; msg='Great work. Review any missed topics.'; }
+  else if (pct >= 70) { grade='C'; scoreClass='score-c'; msg='Decent — focus on weak areas before the exam.'; }
+  else { grade='D'; scoreClass='score-d'; msg='Keep studying — you\'ve got this.'; }
+
+  document.getElementById('quiz-results-screen').innerHTML = `
+    <div class="quiz-results">
+      <h2>Quiz Complete!</h2>
+      <p style="color:#94a3b8; margin-top:8px;">${msg}</p>
+      <div class="score-circle ${scoreClass}">${pct}%</div>
+      <div class="results-breakdown">
+        <div class="result-card"><div class="label">Correct</div><div class="value" style="color:#10b981;">${quizScore}</div></div>
+        <div class="result-card"><div class="label">Incorrect</div><div class="value" style="color:#ef4444;">${quizDeck.length - quizScore}</div></div>
+        <div class="result-card"><div class="label">Total Questions</div><div class="value" style="color:#38bdf8;">${quizDeck.length}</div></div>
+        <div class="result-card"><div class="label">Grade</div><div class="value" style="color:#fbbf24;">${grade}</div></div>
+      </div>
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="startQuiz()">Retake Quiz</button>
+        <button class="btn btn-secondary" onclick="backToStart()">Change Topic</button>
+      </div>
+    </div>`;
+}
+function backToStart() {
+  document.getElementById('quiz-results-screen').style.display = 'none';
+  document.getElementById('quiz-start-screen').style.display = 'block';
+}
+
+// ===================== NAVIGATION =====================
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && name === 'flashcards') || (i === 1 && name === 'quiz'));
+  });
+}
+
+// ===================== INIT =====================
+window.onload = () => {
+  fcDeck = [...FLASHCARDS];
+  showCard();
+};
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  const fc = document.getElementById('screen-flashcards');
+  if (!fc.classList.contains('active')) return;
+  if (e.key === 'ArrowRight') nextCard();
+  else if (e.key === 'ArrowLeft') prevCard();
+  else if (e.key === ' ') { e.preventDefault(); flipCard(); }
+});
+</script>
+</body>
+</html>
